@@ -1,0 +1,27 @@
+﻿## Build and Release outputs
+bin/
+obj/
+publish/
+*.exe
+*.dll
+*.pdb
+*.msi
+
+## User-specific and IDE files
+*.user
+*.userosscache
+*.suo
+*.userprefs
+.vs/
+.idea/
+.vscode/
+
+## Logs and Cache
+*.tmp
+*.log
+logs.txt
+apps_cache.json
+
+## Scratch artifacts
+scratch*
+System.Drawing.Drawing2D.GraphicsPath
