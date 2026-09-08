@@ -628,7 +628,7 @@ namespace Allens.ViewModels
             var sb = new System.Text.StringBuilder();
             sb.AppendLine("=== ALLENS ERROR REPORT ===");
             sb.AppendLine($"Time: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-            sb.AppendLine("App Version: v1.0.1");
+            sb.AppendLine("App Version: v1.0.2");
             sb.AppendLine($"OS: {Environment.OSVersion.VersionString} ({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})");
 
             try

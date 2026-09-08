@@ -149,19 +149,25 @@
                     </ScrollViewer>
 
                     <!-- Sidebar Footer -->
-                    <Border Grid.Row="3" BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,8,0,4" Margin="0,6,0,0">
-                        <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="v1.0.1 • Portable" Foreground="{StaticResource MutedTextBrush}" FontSize="10.5" HorizontalAlignment="Center" />
-                            <TextBlock Text="by yyyert" Foreground="{StaticResource SecondaryTextBrush}" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center" Margin="0,2,0,0" />
-                            
-                            <Button Command="{Binding ManualCheckForUpdatesCommand}"
-                                    Style="{StaticResource GhostButtonStyle}"
-                                    Padding="6,2" Margin="0,3,0,1" Cursor="Hand"
-                                    ToolTip="Проверить наличие новой версии Allens">
-                                <TextBlock Text="Проверить обновления" FontSize="9.5" Foreground="{StaticResource MutedTextBrush}" />
-                            </Button>
-                            
-                            <!-- Telegram Channel Link -->
+                    <StackPanel Grid.Row="3" Margin="0,6,0,0">
+                        <!-- Check Updates Button (Above line and version) -->
+                        <Button Command="{Binding ManualCheckForUpdatesCommand}"
+                                Style="{StaticResource GhostButtonStyle}"
+                                Padding="8,4" Margin="0,0,0,6" HorizontalAlignment="Center" Cursor="Hand"
+                                ToolTip="Проверить наличие новой версии Allens">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock Text="🔄" FontSize="10" Margin="0,0,5,0" VerticalAlignment="Center" />
+                                <TextBlock Text="Проверить обновления" FontSize="10" Foreground="{StaticResource SecondaryTextBrush}" VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <!-- Dividing line with version and author below it -->
+                        <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="0,1,0,0" Padding="0,7,0,4">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="v1.0.2 • Portable" Foreground="{StaticResource MutedTextBrush}" FontSize="10.5" HorizontalAlignment="Center" />
+                                <TextBlock Text="by yyyert" Foreground="{StaticResource SecondaryTextBrush}" FontSize="10" FontWeight="Medium" HorizontalAlignment="Center" Margin="0,2,0,0" />
+                                
+                                <!-- Telegram Channel Link -->
                             <Button Command="{Binding OpenWebsiteCommand}" 
                                     CommandParameter="https://t.me/AHKstop"
                                     Cursor="Hand"
@@ -205,7 +211,8 @@
                             </Button>
                         </StackPanel>
                     </Border>
-                </Grid>
+                </StackPanel>
+            </Grid>
             </Border>
 
             <!-- 2. CENTER: Main Catalog Area -->

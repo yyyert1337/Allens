@@ -11,7 +11,7 @@ namespace Allens.Services
 {
     public class UpdateService : IUpdateService
     {
-        private const string CurrentAppVersion = "1.0.1";
+        private const string CurrentAppVersion = "1.0.2";
         private const string GitHubRepo = "yyyert1337/Allens";
         private const string ReleasesApiUrl = "https://api.github.com/repos/" + GitHubRepo + "/releases/latest";
         private const string VersionRawUrl = "https://raw.githubusercontent.com/" + GitHubRepo + "/main/version.json";

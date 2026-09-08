@@ -566,7 +566,7 @@ namespace Allens.Services
                 var apiUrl = $"https://api.github.com/repos/{owner}/{repo}/releases/latest";
 
                 using var request = new HttpRequestMessage(HttpMethod.Get, apiUrl);
-                request.Headers.UserAgent.ParseAdd("Allens-App/1.0.1 (Windows NT 10.0; Win64; x64)");
+                request.Headers.UserAgent.ParseAdd("Allens-App/1.0.2 (Windows NT 10.0; Win64; x64)");
                 request.Headers.Accept.ParseAdd("application/vnd.github.v3+json");
 
                 using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
