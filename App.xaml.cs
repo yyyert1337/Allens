@@ -72,6 +72,7 @@ namespace Allens
             services.AddSingleton<IInstallationQueueService, InstallationQueueService>();
             services.AddSingleton<IUninstallationService, UninstallationService>();
             services.AddSingleton<IApplicationCleanupService, ApplicationCleanupService>();
+            services.AddSingleton<IUpdateService, UpdateService>();
 
             // ViewModels
             services.AddSingleton<MainWindowViewModel>();

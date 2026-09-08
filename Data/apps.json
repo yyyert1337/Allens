@@ -851,17 +851,18 @@
         "version":  "9.4.0",
         "architecture":  "x64",
         "installerType":  "exe",
-        "silentArguments":  "--silent",
+        "silentArguments":  "/silent_install=1",
+        "wingetId":  "ByteDance.CapCut",
         "requiresAdmin":  false,
-        "sha256":  "",
+        "sha256":  "8911b37a756aa8741be8e0489cd1500cf140968cafa09832c0fb48fab0188ce3",
         "icon":  "capcut.png",
         "isPopular":  true,
         "sizeDisplay":  "128 MB",
         "detectionMethod":  "path",
         "detectionValue":  "%LOCALAPPDATA%\\CapCut\\Apps\\CapCut.exe",
         "uninstallMethod":  "path",
-        "uninstallValue":  "%LOCALAPPDATA%\\CapCut\\Apps\\CapCut.exe",
-        "uninstallArguments":  "--uninstall",
+        "uninstallValue":  "%LOCALAPPDATA%\\CapCut\\Apps\\uninst.exe",
+        "uninstallArguments":  "",
         "cleanupPaths":  [
                              "%LOCALAPPDATA%\\CapCut"
                          ]

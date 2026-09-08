@@ -59,8 +59,8 @@ namespace Allens.Services
             var startInfo = new ProcessStartInfo
             {
                 UseShellExecute = true,
-                CreateNoWindow = true,
-                WindowStyle = ProcessWindowStyle.Hidden
+                CreateNoWindow = false,
+                WindowStyle = ProcessWindowStyle.Normal
             };
 
             // Set Admin rights if required
@@ -105,8 +105,8 @@ namespace Allens.Services
                             FileName = setupExe,
                             Arguments = app.SilentArguments,
                             UseShellExecute = true,
-                            CreateNoWindow = true,
-                            WindowStyle = ProcessWindowStyle.Hidden
+                            CreateNoWindow = false,
+                            WindowStyle = ProcessWindowStyle.Normal
                         };
                         if (app.RequiresAdmin) procInfo.Verb = "runas";
 

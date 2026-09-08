@@ -23,7 +23,26 @@ namespace Allens.ViewModels
         private readonly IApplicationCleanupService _cleanupService;
         private readonly ISettingsService _settingsService;
         private readonly ILoggerService _logger;
+        private readonly IUpdateService _updateService;
         private List<AppItem> _allApps = new();
+
+        [ObservableProperty]
+        private bool _isUpdateAvailable;
+
+        [ObservableProperty]
+        private string _latestAllensVersion = string.Empty;
+
+        [ObservableProperty]
+        private string _updateDownloadUrl = string.Empty;
+
+        [ObservableProperty]
+        private string _updateReleaseNotes = string.Empty;
+
+        [ObservableProperty]
+        private bool _isUpdatingApp;
+
+        [ObservableProperty]
+        private string _updateStatusText = string.Empty;
 
         [ObservableProperty]
         private string _downloadCacheSize = "0 MB";
@@ -91,7 +110,8 @@ namespace Allens.ViewModels
             IUninstallationService uninstallationService,
             IApplicationCleanupService cleanupService,
             ISettingsService settingsService,
-            ILoggerService logger)
+            ILoggerService logger,
+            IUpdateService updateService)
         {
             _catalogService = catalogService;
             _downloadService = downloadService;
@@ -101,6 +121,7 @@ namespace Allens.ViewModels
             _cleanupService = cleanupService;
             _settingsService = settingsService;
             _logger = logger;
+            _updateService = updateService;
             
             QueueService.Queue.CollectionChanged += (s, e) =>
             {
@@ -128,6 +149,7 @@ namespace Allens.ViewModels
             _logger.LogInfo("Allens app started.");
             _ = CheckInternetConnectivityAsync();
             RefreshDownloadCacheSize();
+            _ = CheckForAppUpdatesAsync();
             await LoadCatalogAsync();
         }
 
@@ -700,6 +722,77 @@ namespace Allens.ViewModels
             catch (Exception ex)
             {
                 ShowNotification($"Ошибка открытия Telegram: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        public async Task CheckForAppUpdatesAsync(bool isManual = false)
+        {
+            try
+            {
+                var info = await _updateService.CheckForUpdateAsync();
+                if (info != null && info.HasUpdate && !string.IsNullOrWhiteSpace(info.DownloadUrl))
+                {
+                    LatestAllensVersion = info.LatestVersion;
+                    UpdateDownloadUrl = info.DownloadUrl;
+                    UpdateReleaseNotes = info.ReleaseNotes;
+                    IsUpdateAvailable = true;
+                    ShowNotification($"Доступно обновление Allens v{LatestAllensVersion}!");
+                }
+                else if (isManual)
+                {
+                    ShowNotification("У вас установлена последняя версия Allens ✓");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (isManual) ShowNotification($"Ошибка проверки обновлений: {ex.Message}");
+            }
+        }
+
+        [RelayCommand]
+        public async Task ManualCheckForUpdatesAsync()
+        {
+            await CheckForAppUpdatesAsync(isManual: true);
+        }
+
+        [RelayCommand]
+        private void DismissUpdateBanner()
+        {
+            IsUpdateAvailable = false;
+        }
+
+        [RelayCommand]
+        private async Task ApplyAppUpdateAsync()
+        {
+            if (string.IsNullOrWhiteSpace(UpdateDownloadUrl))
+            {
+                ShowNotification("Ссылка на обновление не указана.");
+                return;
+            }
+
+            try
+            {
+                IsUpdatingApp = true;
+                UpdateStatusText = "Загрузка обновления...";
+                ShowNotification($"Загрузка Allens v{LatestAllensVersion}...");
+
+                var progress = new Progress<double>(pct =>
+                {
+                    UpdateStatusText = $"Загрузка обновления: {pct:F0}%";
+                });
+
+                var downloadedPath = await _updateService.DownloadUpdateAsync(UpdateDownloadUrl, progress);
+                UpdateStatusText = "Перезапуск и применение обновления...";
+                ShowNotification("Обновление готово! Перезапуск Allens...");
+
+                await Task.Delay(600);
+                _updateService.ApplyUpdateAndRestart(downloadedPath);
+            }
+            catch (Exception ex)
+            {
+                IsUpdatingApp = false;
+                ShowNotification($"Сбой обновления: {ex.Message}");
             }
         }
 

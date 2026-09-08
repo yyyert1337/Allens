@@ -7,6 +7,7 @@
     <helpers:BooleanToVisibilityInverseConverter x:Key="BooleanToVisibilityInverseConverter" />
     <helpers:CountToVisibilityConverter x:Key="CountToVisibilityConverter" />
     <helpers:CountToVisibilityInverseConverter x:Key="CountToVisibilityInverseConverter" />
+    <helpers:InverseBooleanConverter x:Key="InverseBooleanConverter" />
 
     <!-- Pure Minimalist Dark Palette -->
     <Color x:Key="BackgroundColor">#FF0E0E0E</Color>
