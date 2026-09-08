@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -12,9 +12,7 @@ namespace Allens.Helpers
 {
     public static class ProcessHelper
     {
-        /// <summary>
-        /// Attempts to gracefully close (and if needed kill) running instances of the specified app to prevent file locks.
-        /// </summary>
+
         public static async Task CloseRunningAppProcessesAsync(AppItem app, ILoggerService? logger = null)
         {
             var candidateExeNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -49,7 +47,7 @@ namespace Allens.Helpers
                 bool isMatch = false;
                 try
                 {
-                    // Never kill system or critical processes
+
                     if (proc.Id != Environment.ProcessId && 
                         !string.Equals(proc.ProcessName, "explorer", StringComparison.OrdinalIgnoreCase) &&
                         !string.Equals(proc.ProcessName, "devenv", StringComparison.OrdinalIgnoreCase) &&
@@ -69,7 +67,7 @@ namespace Allens.Helpers
                                     isMatch = true;
                                 }
                             }
-                            catch { /* Access denied on protected system processes is expected */ }
+                            catch {  }
                         }
                     }
                 }
@@ -89,7 +87,6 @@ namespace Allens.Helpers
 
             logger?.LogInfo($"Detected {matchingProcesses.Count} running process(es) for {app.Name}. Attempting graceful close...");
 
-            // Step 1: Graceful close
             foreach (var p in matchingProcesses)
             {
                 try
@@ -99,7 +96,6 @@ namespace Allens.Helpers
                 catch { }
             }
 
-            // Step 2: Wait up to 2.5 seconds
             var stopwatch = Stopwatch.StartNew();
             while (stopwatch.ElapsedMilliseconds < 2500)
             {
@@ -107,7 +103,6 @@ namespace Allens.Helpers
                 await Task.Delay(200);
             }
 
-            // Step 3: Terminate any remaining lingering processes
             foreach (var p in matchingProcesses)
             {
                 try
@@ -126,9 +121,6 @@ namespace Allens.Helpers
             }
         }
 
-        /// <summary>
-        /// Waits for a process to exit within a specified timeout. If cancelled or timed out, kills the entire process tree.
-        /// </summary>
         public static async Task<bool> WaitForExitWithTimeoutAsync(Process process, TimeSpan timeout, CancellationToken cancellationToken = default)
         {
             using var timeoutCts = new CancellationTokenSource(timeout);
@@ -148,7 +140,7 @@ namespace Allens.Helpers
                         process.Kill(entireProcessTree: true);
                     }
                 }
-                catch { /* Ignore kill errors */ }
+                catch {  }
 
                 if (timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
                 {

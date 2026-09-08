@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
@@ -26,7 +26,7 @@ namespace Allens.Services
 
         public async Task<UpdateInfo?> CheckForUpdateAsync(CancellationToken cancellationToken = default)
         {
-            // 1. Try GitHub Releases API
+
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, ReleasesApiUrl);
@@ -83,7 +83,6 @@ namespace Allens.Services
                 _logger.LogInfo($"Update check via GitHub API skipped: {ex.Message}");
             }
 
-            // 2. Fallback check via version.json
             try
             {
                 using var request = new HttpRequestMessage(HttpMethod.Get, VersionRawUrl);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -21,24 +21,22 @@ namespace Allens.Services
         {
             _httpClient = httpClient;
             _httpClient.Timeout = Timeout.InfiniteTimeSpan;
-            
-            // Setup Temp Directory: %TEMP%\Allens\Downloads\
+
             var tempPath = Path.GetTempPath();
             _downloadDirectory = Path.Combine(tempPath, "Allens", "Downloads");
-            
+
             if (!Directory.Exists(_downloadDirectory))
             {
                 Directory.CreateDirectory(_downloadDirectory);
             }
 
-            // Periodically clean up abandoned .part files older than 7 days in background
             Task.Run(() => CleanupOldPartFiles(TimeSpan.FromDays(7)));
         }
 
         private static HttpRequestMessage CreateRequest(HttpMethod method, string url)
         {
             var request = new HttpRequestMessage(method, url);
-            // SourceForge and certain CDN mirrors require CLI downloader user agents to bypass cloud challenges
+
             if (url.Contains("sourceforge.net", StringComparison.OrdinalIgnoreCase))
             {
                 request.Headers.UserAgent.ParseAdd("Wget/1.21.4");
@@ -61,7 +59,7 @@ namespace Allens.Services
             {
                 using var request = CreateRequest(HttpMethod.Head, url);
                 using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
-                
+
                 if (response.IsSuccessStatusCode && response.Content.Headers.ContentLength.HasValue && response.Content.Headers.ContentLength.Value > 0)
                 {
                     return response.Content.Headers.ContentLength.Value;
@@ -76,7 +74,7 @@ namespace Allens.Services
             }
             catch
             {
-                // Fallback if request fails or times out
+
             }
 
             return null;
@@ -113,7 +111,7 @@ namespace Allens.Services
             }
             catch (Exception ex) when (!(ex is OperationCanceledException))
             {
-                // 1. If this is a GitHub release URL, automatically resolve the latest live release asset
+
                 if (IsGitHubReleaseUrl(url))
                 {
                     try
@@ -127,7 +125,6 @@ namespace Allens.Services
                     catch { }
                 }
 
-                // 2. WinGet fallback if wingetId is provided
                 if (!string.IsNullOrWhiteSpace(wingetId))
                 {
                     try
@@ -163,7 +160,7 @@ namespace Allens.Services
                     }
                     else
                     {
-                        // Stale part file from another download; delete and start clean
+
                         try { File.Delete(partPath); } catch { }
                         try { File.Delete(metaPath); } catch { }
                         existingBytes = 0;
@@ -176,7 +173,7 @@ namespace Allens.Services
             }
             else if (File.Exists(partPath) && !File.Exists(metaPath))
             {
-                // Unvalidated part file without metadata; delete and start clean
+
                 try { File.Delete(partPath); } catch { }
                 existingBytes = 0;
             }
@@ -207,7 +204,7 @@ namespace Allens.Services
 
             using (response)
             {
-                // Handle 416 (Range Not Satisfiable: file might already be complete or changed on server)
+
                 if (response.StatusCode == System.Net.HttpStatusCode.RequestedRangeNotSatisfiable)
                 {
                     try { File.Delete(partPath); } catch { }
@@ -421,10 +418,8 @@ namespace Allens.Services
                 while (isMoreToRead);
             }
 
-            // Clean up companion .meta file upon completion
             try { File.Delete(partPath + ".meta"); } catch { }
 
-            // Move completed .part file to final destination
             if (File.Exists(destinationPath))
             {
                 try { File.Delete(destinationPath); } catch { }
@@ -597,7 +592,6 @@ namespace Allens.Services
 
                 if (candidateUrls.Count == 0) return null;
 
-                // 1. Exact or near match on expected file name
                 if (!string.IsNullOrWhiteSpace(expectedFileName))
                 {
                     var exact = candidateUrls.FirstOrDefault(c => string.Equals(c.Name, expectedFileName, StringComparison.OrdinalIgnoreCase));
@@ -611,7 +605,6 @@ namespace Allens.Services
                     if (!string.IsNullOrWhiteSpace(matchedName.Url)) return matchedName.Url;
                 }
 
-                // 2. Filter out non-Windows / non-x64 assets
                 var windowsAssets = candidateUrls.Where(c =>
                 {
                     var ln = c.Name.ToLowerInvariant();
@@ -633,7 +626,7 @@ namespace Allens.Services
             }
             catch
             {
-                // Ignore resolution failure and fallback
+
             }
 
             return null;

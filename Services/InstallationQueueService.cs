@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -59,7 +59,6 @@ namespace Allens.Services
                 existing.ProgressText = string.Empty;
             }
 
-            // Always guarantee that queue execution starts immediately
             _ = ProcessQueueAsync();
         }
 
@@ -78,7 +77,6 @@ namespace Allens.Services
                 item.Cancel();
                 Queue.Remove(item);
 
-                // Clean up any remaining .part file when removed from queue
                 try
                 {
                     var fileName = DetermineInstallerFileName(app);
@@ -107,12 +105,11 @@ namespace Allens.Services
         {
             try
             {
-                // Wait 10 seconds after completion as requested
+
                 await Task.Delay(10000);
-                
+
                 if (!Queue.Contains(item)) return;
 
-                // Smooth fade-out animation over 400ms (16 steps x 25ms)
                 for (int i = 1; i <= 16; i++)
                 {
                     await Task.Delay(25);
@@ -122,7 +119,6 @@ namespace Allens.Services
                     });
                 }
 
-                // Cleanly remove from queue
                 System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     Queue.Remove(item);
@@ -130,7 +126,7 @@ namespace Allens.Services
             }
             catch
             {
-                // Ignore background dismiss errors
+
             }
         }
 
@@ -138,7 +134,7 @@ namespace Allens.Services
         {
             if (!await _queueSemaphore.WaitAsync(0, cancellationToken).ConfigureAwait(false))
             {
-                // An execution loop is already running and will process any new pending items
+
                 return;
             }
 
@@ -195,8 +191,7 @@ namespace Allens.Services
                 };
 
                 _logger.LogInfo($"Starting {actionVerb} for {item.App.Name}");
-                
-                // 0. Pre-flight Disk Space Check
+
                 long requiredSpace = DiskSpaceHelper.EstimateRequiredBytes(item.App);
                 var tempDir = Path.GetTempPath();
                 if (!DiskSpaceHelper.CheckFreeSpace(tempDir, requiredSpace, out long availableSpace))
@@ -207,7 +202,6 @@ namespace Allens.Services
                     return;
                 }
 
-                // 1. Download (or use existing downloaded installer if available)
                 var fileName = DetermineInstallerFileName(item.App);
                 var tempDownloadDir = Path.Combine(Path.GetTempPath(), "Allens", "Downloads");
                 var potentialCachedFile = Path.Combine(tempDownloadDir, fileName);
@@ -241,7 +235,7 @@ namespace Allens.Services
                         QueueOperationType.Update => "Скачивание обновления...",
                         _ => "Скачивание..."
                     };
-                    
+
                     var progress = new Progress<DownloadProgressInfo>(p =>
                     {
                         item.ProgressPercentage = p.ProgressPercentage;
@@ -251,7 +245,6 @@ namespace Allens.Services
                     downloadedFilePath = await _downloadService.DownloadFileAsync(item.App.DownloadUrl, fileName, progress, token, item.App.WingetId);
                     _logger.LogInfo($"Downloaded {item.App.Name} to {downloadedFilePath}");
 
-                    // 2. Verify Hash
                     item.Status = QueueItemStatus.Verifying;
                     item.StatusMessage = "Проверка...";
                     item.ProgressText = "";
@@ -267,7 +260,6 @@ namespace Allens.Services
                     }
                 }
 
-                // 3. Install / Reinstall / Update
                 item.Status = item.OperationType == QueueOperationType.Reinstall ? QueueItemStatus.Reinstalling : QueueItemStatus.Installing;
                 item.StatusMessage = item.OperationType switch
                 {
@@ -276,9 +268,9 @@ namespace Allens.Services
                     _ => "Установка..."
                 };
                 _logger.LogInfo($"{actionTitle} {item.App.Name}...");
-                
+
                 var installResult = await _installationService.InstallAsync(item.App, downloadedFilePath, token);
-                
+
                 if (installResult.IsSuccess)
                 {
                     item.Status = QueueItemStatus.Completed;
@@ -294,20 +286,17 @@ namespace Allens.Services
                     item.App.HasUpdate = false;
                     item.App.IsSelected = false;
 
-                    // Automatically detect and populate InstalledPath, InstalledVersion and exact size
                     try
                     {
                         _detectionService.InspectApp(item.App);
                     }
                     catch { }
 
-                    // Enforce invariant: successful installation keeps app marked as installed in UI
                     item.App.IsInstalled = true;
                     item.App.HasUpdate = false;
 
                     _logger.LogInfo($"Successfully {actionVerb}ed {item.App.Name}. Path: {item.App.InstalledPath}");
 
-                    // Beautiful automatic dismissal 10 seconds after completion
                     _ = ScheduleAutoDismissAsync(item);
                 }
                 else
@@ -338,7 +327,6 @@ namespace Allens.Services
             {
                 item.Cts = null;
 
-                // 4. Cleanup temp file
                 if (!string.IsNullOrWhiteSpace(downloadedFilePath) && File.Exists(downloadedFilePath))
                 {
                     try
@@ -346,7 +334,7 @@ namespace Allens.Services
                         File.Delete(downloadedFilePath);
                         _logger.LogInfo($"Cleaned up temp file: {downloadedFilePath}");
                     }
-                    catch { /* Ignore cleanup errors */ }
+                    catch {  }
                 }
             }
         }

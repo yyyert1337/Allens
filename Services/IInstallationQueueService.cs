@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,11 +10,11 @@ namespace Allens.Services
     {
         ObservableCollection<QueueItem> Queue { get; }
         bool IsProcessing { get; }
-        
+
         void AddToQueue(AppItem app, QueueOperationType operationType = QueueOperationType.Install);
         void RemoveFromQueue(AppItem app);
         void ClearQueue();
-        
+
         Task ProcessQueueAsync(CancellationToken cancellationToken = default);
         Task ScheduleAutoDismissAsync(QueueItem item);
     }

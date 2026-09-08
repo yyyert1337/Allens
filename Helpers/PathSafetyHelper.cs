@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -15,7 +15,6 @@ namespace Allens.Helpers
                 var fullPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(path))
                                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
-                // Drive root (e.g. C:, C:\, D:\)
                 var root = Path.GetPathRoot(fullPath)?.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 if (string.Equals(fullPath, root, StringComparison.OrdinalIgnoreCase))
                 {
@@ -40,7 +39,6 @@ namespace Allens.Helpers
                     Path.GetDirectoryName(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)) ?? @"C:\Users"
                 };
 
-                // Exact match with any protected root directory
                 foreach (var pr in protectedRoots)
                 {
                     if (string.IsNullOrWhiteSpace(pr)) continue;
@@ -51,7 +49,6 @@ namespace Allens.Helpers
                     }
                 }
 
-                // Any path inside C:\Windows (Windows folder and ALL its contents are 100% protected)
                 var winDir = Environment.GetFolderPath(Environment.SpecialFolder.Windows)
                                         .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 if (string.Equals(fullPath, winDir, StringComparison.OrdinalIgnoreCase) ||
@@ -60,7 +57,6 @@ namespace Allens.Helpers
                     return true;
                 }
 
-                // Check depth: must not be immediate child of system roots (like C:\Program Files or C:\Users)
                 var segments = fullPath.Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
                 if (segments.Length <= 1) return true;
 
@@ -130,7 +126,6 @@ namespace Allens.Helpers
             {
                 if (!Directory.Exists(dirPath)) return true;
 
-                // Strip readonly flags if any
                 var di = new DirectoryInfo(dirPath);
                 foreach (var file in di.EnumerateFiles("*", SearchOption.AllDirectories))
                 {

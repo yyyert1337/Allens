@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -16,10 +16,10 @@ namespace Allens.Services
         public SettingsService(ILoggerService logger)
         {
             _logger = logger;
-            
+
             var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             var directory = Path.Combine(appDataPath, "Allens");
-            
+
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
@@ -49,7 +49,6 @@ namespace Allens.Services
                 _logger.LogError("Failed to load settings.", ex);
             }
 
-            // Fallback to default
             Settings = new AppSettings();
         }
 

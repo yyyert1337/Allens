@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Windows;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -45,7 +45,7 @@ namespace Allens
 
         private void ConfigureServices(IServiceCollection services)
         {
-            // HttpClient with modern headers, compression and auto-redirects
+
             services.AddSingleton<System.Net.Http.HttpClient>(sp =>
             {
                 var handler = new System.Net.Http.HttpClientHandler
@@ -60,7 +60,6 @@ namespace Allens
                 return client;
             });
 
-            // Services
             services.AddSingleton<ILoggerService, LoggerService>();
             services.AddSingleton<ISettingsService, SettingsService>();
 
@@ -74,10 +73,8 @@ namespace Allens
             services.AddSingleton<IApplicationCleanupService, ApplicationCleanupService>();
             services.AddSingleton<IUpdateService, UpdateService>();
 
-            // ViewModels
             services.AddSingleton<MainWindowViewModel>();
 
-            // Views
             services.AddSingleton<MainWindow>();
         }
 

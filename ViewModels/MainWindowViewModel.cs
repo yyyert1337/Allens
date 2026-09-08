@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -57,7 +57,7 @@ namespace Allens.ViewModels
         private string _selectedCategory = "Все приложения";
 
         [ObservableProperty]
-        private string _selectedStatusFilter = "Все"; // "Все", "Установленные", "Не установленные", "Есть обновления"
+        private string _selectedStatusFilter = "Все"; 
 
         [ObservableProperty]
         private AppItem? _selectedAppDetails;
@@ -74,7 +74,6 @@ namespace Allens.ViewModels
         [ObservableProperty]
         private bool _isSnackbarVisible = false;
 
-        // Modern In-App Modal Dialog State
         [ObservableProperty]
         private bool _isDialogOpen = false;
 
@@ -122,7 +121,7 @@ namespace Allens.ViewModels
             _settingsService = settingsService;
             _logger = logger;
             _updateService = updateService;
-            
+
             QueueService.Queue.CollectionChanged += (s, e) =>
             {
                 RefreshDownloadCacheSize();
@@ -157,7 +156,7 @@ namespace Allens.ViewModels
         {
             var apps = await _catalogService.GetCatalogAsync();
             _allApps = apps.ToList();
-            
+
             _detectionService.UpdateInstallationStatus(_allApps);
 
             foreach (var app in _allApps)
@@ -170,13 +169,11 @@ namespace Allens.ViewModels
                     }
                 };
             }
-            
+
             ApplyFilter();
 
-            // Measure installed folder sizes smoothly in background without blocking UI
             _detectionService.MeasureFolderSizesBackground(_allApps);
 
-            // Background verification of exact live installer sizes from official servers
             _ = Task.Run(async () =>
             {
                 foreach (var app in _allApps)
@@ -240,7 +237,6 @@ namespace Allens.ViewModels
             SelectedAppDetails = app;
             IsDetailsOpen = true;
 
-            // Re-detect app to ensure InstalledPath, size and version are always accurate
             try
             {
                 _detectionService.InspectApp(app);
@@ -312,13 +308,11 @@ namespace Allens.ViewModels
         {
             var filtered = _allApps.AsEnumerable();
 
-            // Filter by category
             if (SelectedCategory != "Все приложения")
             {
                 filtered = filtered.Where(a => a.Category.Equals(SelectedCategory, StringComparison.OrdinalIgnoreCase));
             }
 
-            // Filter by status ("Все", "Установленные", "Не установленные", "Есть обновления")
             if (SelectedStatusFilter == "Установленные")
             {
                 filtered = filtered.Where(a => a.IsInstalled);
@@ -332,7 +326,6 @@ namespace Allens.ViewModels
                 filtered = filtered.Where(a => a.IsInstalled && a.HasUpdate);
             }
 
-            // Filter by search text
             if (!string.IsNullOrWhiteSpace(SearchText))
             {
                 var query = SearchText.ToLower();
@@ -381,20 +374,19 @@ namespace Allens.ViewModels
                 return;
             }
 
-            // Disk space check before batch downloading & installation
             try
             {
                 long totalEstimatedBytes = 0;
                 foreach (var app in selected)
                 {
                     long dlSize = ParseSizeDisplayBytes(app.SizeDisplay);
-                    totalEstimatedBytes += (long)(dlSize * 2.2); // download archive + extraction space
+                    totalEstimatedBytes += (long)(dlSize * 2.2); 
                 }
 
                 var systemDrive = new DriveInfo(Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\");
                 if (systemDrive.IsReady)
                 {
-                    if (systemDrive.AvailableFreeSpace < 1024L * 1024 * 1024) // Less than 1 GB is critically low
+                    if (systemDrive.AvailableFreeSpace < 1024L * 1024 * 1024) 
                     {
                         var freeDisp = DownloadService.FormatBytes(systemDrive.AvailableFreeSpace);
                         await ShowDialogAsync(
@@ -432,7 +424,7 @@ namespace Allens.ViewModels
                     ? (app.HasUpdate ? QueueOperationType.Update : QueueOperationType.Reinstall)
                     : QueueOperationType.Install;
                 QueueService.AddToQueue(app, op);
-                app.IsSelected = false; // Deselect after adding to queue
+                app.IsSelected = false; 
             }
 
             _ = QueueService.ProcessQueueAsync();
@@ -446,7 +438,7 @@ namespace Allens.ViewModels
             {
                 if (!string.IsNullOrWhiteSpace(app.InstalledPath))
                 {
-                    // 1. If points directly to a file
+
                     if (File.Exists(app.InstalledPath))
                     {
                         Process.Start(new ProcessStartInfo
@@ -459,7 +451,6 @@ namespace Allens.ViewModels
                         return;
                     }
 
-                    // 2. If directory, look for main executable
                     if (Directory.Exists(app.InstalledPath))
                     {
                         var dir = new DirectoryInfo(app.InstalledPath);
@@ -489,7 +480,6 @@ namespace Allens.ViewModels
                     }
                 }
 
-                // 3. Search Start Menu shortcuts (.lnk)
                 var shortcut = FindStartMenuShortcut(app.Name);
                 if (!string.IsNullOrWhiteSpace(shortcut) && File.Exists(shortcut))
                 {
@@ -800,7 +790,7 @@ namespace Allens.ViewModels
         private async Task UninstallAsync(AppItem app)
         {
             if (app == null) return;
-            
+
             var confirmed = await ShowDialogAsync(
                 title: $"Удалить {app.Name}?",
                 message: "Программа будет полностью удалена с вашего компьютера. Некоторые персональные файлы настроек могут быть сохранены.",
@@ -809,10 +799,9 @@ namespace Allens.ViewModels
                 isDanger: true,
                 hasCancel: true
             );
-                
+
             if (!confirmed) return;
 
-            // Show in Right Queue / Action Panel
             var queueItem = QueueService.Queue.FirstOrDefault(q => q.App.Id == app.Id);
             if (queueItem == null)
             {
@@ -827,22 +816,21 @@ namespace Allens.ViewModels
             queueItem.Opacity = 1.0;
 
             _logger.LogInfo($"Starting uninstallation of {app.Name}");
-            
+
             var result = await _uninstallationService.UninstallAsync(app);
-            
+
             if (result.IsSuccess)
             {
-                app.IsInstalled = false; // Immediately update state
+                app.IsInstalled = false; 
                 app.HasUpdate = false;
-                
+
                 queueItem.Status = QueueItemStatus.Completed;
                 queueItem.StatusMessage = "Удалено ✓";
                 queueItem.ProgressPercentage = 100;
                 _logger.LogInfo($"Successfully uninstalled {app.Name}");
 
-                // Beautiful auto-dismiss after 10 seconds
                 _ = QueueService.ScheduleAutoDismissAsync(queueItem);
-                
+
                 var leftovers = _cleanupService.GetExistingLeftovers(app).ToList();
                 if (leftovers.Any())
                 {
@@ -854,7 +842,7 @@ namespace Allens.ViewModels
                         isDanger: false,
                         hasCancel: true
                     );
-                        
+
                     if (cleanConfirm)
                     {
                         await _cleanupService.CleanupAsync(leftovers);
@@ -875,7 +863,7 @@ namespace Allens.ViewModels
                     : result.ErrorMessage;
                 _logger.LogError($"Failed to uninstall {app.Name}. Code: {result.ExitCode}, Msg: {result.ErrorMessage}");
                 ShowNotification($"Не удалось удалить {app.Name}");
-                
+
                 var forceOption = await ShowDialogAsync(
                     title: "Ошибка при штатном удалении",
                     message: $"Не удалось удалить {app.Name} штатным деинсталлятором (код: {result.ExitCode}).\n\nЖелаете выполнить принудительное удаление (завершить процессы, удалить файлы и очистить следы в реестре)?",
@@ -908,7 +896,6 @@ namespace Allens.ViewModels
 
             if (!confirmed) return;
 
-            // Show in Right Queue / Action Panel
             var queueItem = QueueService.Queue.FirstOrDefault(q => q.App.Id == app.Id);
             if (queueItem == null)
             {
@@ -961,7 +948,7 @@ namespace Allens.ViewModels
 
         public Task<bool> ShowDialogAsync(string title, string message, string confirmText = "Подтвердить", string cancelText = "Отмена", bool isDanger = false, bool hasCancel = true)
         {
-            // Safely resolve any previous dialog to prevent deadlocked awaiters
+
             _dialogTcs?.TrySetResult(false);
 
             DialogTitle = title;
@@ -1011,7 +998,7 @@ namespace Allens.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Superseded by a newer notification
+
             }
         }
     }

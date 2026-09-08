@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -41,7 +41,6 @@ namespace Allens.Services
                 {
                     var expandedPath = Environment.ExpandEnvironmentVariables(app.DetectionValue);
 
-                    // If primary detection path doesn't exist, check if containing folder has a matching binary
                     if (!File.Exists(expandedPath) && !Directory.Exists(expandedPath))
                     {
                         var targetDir = Path.GetDirectoryName(expandedPath);
@@ -58,7 +57,7 @@ namespace Allens.Services
                     if (File.Exists(expandedPath))
                     {
                         app.IsInstalled = true;
-                        // For portable applications or direct file targets, store the full executable path!
+
                         app.InstalledPath = expandedPath;
 
                         try
@@ -74,7 +73,6 @@ namespace Allens.Services
                             app.InstalledVersion = string.Empty;
                         }
 
-                        // Immediate size display for single-file portable
                         try
                         {
                             var fi = new FileInfo(expandedPath);
@@ -114,13 +112,13 @@ namespace Allens.Services
                     {
                         var hiveString = parts[0];
                         var subKey = parts[1];
-                        
+
                         RegistryKey? baseKey = GetBaseKey(hiveString);
                         bool found = false;
 
                         if (baseKey != null)
                         {
-                            // 1. Try direct registry subkey
+
                             using (var key = baseKey.OpenSubKey(subKey))
                             {
                                 if (key != null && ExtractRegistryDetails(key, app))
@@ -129,7 +127,6 @@ namespace Allens.Services
                                 }
                             }
 
-                            // 2. If looking in HKLM\SOFTWARE, also try WOW6432Node
                             if (!found && hiveString.Equals("HKEY_LOCAL_MACHINE", StringComparison.OrdinalIgnoreCase) &&
                                 subKey.StartsWith("SOFTWARE\\", StringComparison.OrdinalIgnoreCase) &&
                                 !subKey.StartsWith("SOFTWARE\\WOW6432Node\\", StringComparison.OrdinalIgnoreCase))
@@ -143,13 +140,11 @@ namespace Allens.Services
                             }
                         }
 
-                        // 3. If direct key still not found, search all uninstall keys by Name/DisplayName
                         if (!found)
                         {
                             found = TryFindUninstallRegistry(app);
                         }
 
-                        // 4. Strict physical verification: app must genuinely exist on disk!
                         bool physicallyPresent = false;
                         if (found && !string.IsNullOrWhiteSpace(app.InstalledPath))
                         {
@@ -183,7 +178,6 @@ namespace Allens.Services
                     }
                 }
 
-                // Evaluate whether an update is available
                 if (app.IsInstalled)
                 {
                     if (app.DetectionMethod.Equals("path", StringComparison.OrdinalIgnoreCase))
@@ -196,7 +190,6 @@ namespace Allens.Services
                         }
                     }
 
-                    // Instant single-file size check
                     if (string.IsNullOrWhiteSpace(app.InstalledSizeDisplay) && !string.IsNullOrWhiteSpace(app.InstalledPath) && File.Exists(app.InstalledPath))
                     {
                         try
@@ -229,7 +222,7 @@ namespace Allens.Services
             }
             catch
             {
-                // Fallback on error
+
                 app.IsInstalled = false;
                 app.HasUpdate = false;
             }
@@ -242,7 +235,6 @@ namespace Allens.Services
 
             string foundPath = string.Empty;
 
-            // 1. Check InstallLocation
             var loc = key.GetValue("InstallLocation")?.ToString();
             if (!string.IsNullOrWhiteSpace(loc))
             {
@@ -253,7 +245,6 @@ namespace Allens.Services
                 }
             }
 
-            // 2. If path still empty, check UninstallString / QuietUninstallString
             if (string.IsNullOrWhiteSpace(foundPath))
             {
                 var uninst = (key.GetValue("UninstallString") ?? key.GetValue("QuietUninstallString"))?.ToString();
@@ -271,7 +262,6 @@ namespace Allens.Services
                 }
             }
 
-            // 3. If path still empty, check DisplayIcon
             if (string.IsNullOrWhiteSpace(foundPath))
             {
                 var iconVal = key.GetValue("DisplayIcon")?.ToString();
@@ -300,7 +290,6 @@ namespace Allens.Services
                 }
             }
 
-            // 4. If path still empty, check disk files directly (ProgramFiles, AppData, CleanupPaths)
             if (string.IsNullOrWhiteSpace(foundPath))
             {
                 var diskDir = FindAppOnDisk(app);
@@ -310,21 +299,17 @@ namespace Allens.Services
                 }
             }
 
-            // === STRICT PHYSICAL VERIFICATION ===
-            // If not a single physical file or directory exists on disk, this is an ORPHANED ghost registry entry!
             if (string.IsNullOrWhiteSpace(foundPath))
             {
                 return false;
             }
 
-            // App is verified to physically exist on disk!
             app.InstalledPath = foundPath;
             if (!string.IsNullOrWhiteSpace(foundVer))
             {
                 app.InstalledVersion = foundVer;
             }
 
-            // Read EstimatedSize (DWORD in KB) only for genuinely existing applications
             var estVal = key.GetValue("EstimatedSize");
             if (estVal != null && long.TryParse(estVal.ToString(), out var sizeKb) && sizeKb > 0)
             {
@@ -350,7 +335,6 @@ namespace Allens.Services
                     using var uninstKey = root.OpenSubKey(p);
                     if (uninstKey == null) continue;
 
-                    // Direct key check
                     var directCandidates = new[] { app.Name, app.Id, $"{app.Name}_is1", $"{app.Id}_is1" };
                     foreach (var dc in directCandidates)
                     {
@@ -361,10 +345,9 @@ namespace Allens.Services
                         }
                     }
 
-                    // Enumerate subkeys
                     foreach (var subName in uninstKey.GetSubKeyNames())
                     {
-                        // Filter out Steam game entries if searching for Steam client
+
                         if (subName.StartsWith("Steam App ", StringComparison.OrdinalIgnoreCase) &&
                             !app.Id.StartsWith("steam_app", StringComparison.OrdinalIgnoreCase))
                         {
@@ -381,7 +364,7 @@ namespace Allens.Services
 
                         if (isMatch)
                         {
-                            // Strictly verify physical presence on disk!
+
                             if (ExtractRegistryDetails(sub, app))
                             {
                                 return true;
@@ -395,7 +378,7 @@ namespace Allens.Services
 
         private string? FindAppOnDisk(AppItem app)
         {
-            // 1. Check DetectionValue if it's a file or directory path
+
             if (!string.IsNullOrWhiteSpace(app.DetectionValue) && !app.DetectionValue.StartsWith("HKEY_", StringComparison.OrdinalIgnoreCase))
             {
                 var exp = Environment.ExpandEnvironmentVariables(app.DetectionValue);
@@ -403,7 +386,6 @@ namespace Allens.Services
                 if (Directory.Exists(exp) && HasAnyFiles(exp)) return exp;
             }
 
-            // 2. Check CleanupPaths from catalog
             if (app.CleanupPaths != null)
             {
                 foreach (var cp in app.CleanupPaths)
@@ -416,7 +398,6 @@ namespace Allens.Services
                 }
             }
 
-            // 3. Check common program locations
             var programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
             var programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
             var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -521,7 +502,6 @@ namespace Allens.Services
         {
             if (string.IsNullOrWhiteSpace(candidate)) return false;
 
-            // Direct exact match
             if (candidate.Equals(targetName, StringComparison.OrdinalIgnoreCase) ||
                 candidate.Equals(targetId, StringComparison.OrdinalIgnoreCase) ||
                 candidate.Equals($"{targetName}_is1", StringComparison.OrdinalIgnoreCase) ||
@@ -530,7 +510,6 @@ namespace Allens.Services
                 return true;
             }
 
-            // Word-boundary / prefix matches
             if (!string.IsNullOrWhiteSpace(targetName) && targetName.Length >= 3)
             {
                 if (candidate.StartsWith(targetName + " ", StringComparison.OrdinalIgnoreCase) ||
@@ -553,7 +532,6 @@ namespace Allens.Services
                 }
             }
 
-            // Also check if candidate contains the full name as a whole word or compound (e.g. BraveSoftware Brave-Browser)
             if (!string.IsNullOrWhiteSpace(targetName) && targetName.Length >= 4)
             {
                 if (candidate.IndexOf(targetName, StringComparison.OrdinalIgnoreCase) >= 0)

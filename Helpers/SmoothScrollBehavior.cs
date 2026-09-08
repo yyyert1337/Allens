@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
@@ -108,16 +108,14 @@ namespace Allens.Helpers
             long timeSinceLast = now - _lastWheelTime;
             _lastWheelTime = now;
 
-            int currentDirection = Math.Sign(-e.Delta); // 1 = scroll down, -1 = scroll up
+            int currentDirection = Math.Sign(-e.Delta); 
 
-            // If user reversed direction, paused > 250ms, or was not animating, anchor to current physical offset
             if (currentDirection != _lastDirection || timeSinceLast > 250 || !_isRendering)
             {
                 _targetOffset = _sv.VerticalOffset;
             }
             _lastDirection = currentDirection;
 
-            // Adaptive velocity multiplier when spinning quickly
             double multiplier = 1.0;
             if (timeSinceLast < 45)
             {
@@ -132,11 +130,9 @@ namespace Allens.Helpers
                 multiplier = 1.15;
             }
 
-            // Natural wheel step: 125px per 120 units of wheel delta
             double step = (Math.Abs(e.Delta) / 120.0) * 125.0 * multiplier;
             _targetOffset += currentDirection * step;
 
-            // Clamp target within valid scrollable range
             _targetOffset = Math.Clamp(_targetOffset, 0.0, _sv.ScrollableHeight);
 
             StartAnimation();
@@ -169,7 +165,6 @@ namespace Allens.Helpers
             double current = _sv.VerticalOffset;
             double distance = _targetOffset - current;
 
-            // When distance is negligible (< 0.5px), finalize and stop
             if (Math.Abs(distance) < 0.5)
             {
                 _sv.ScrollToVerticalOffset(_targetOffset);
@@ -177,13 +172,11 @@ namespace Allens.Helpers
                 return;
             }
 
-            // Frame-rate independent exponential decay / dampening:
             double dt = _stopwatch.Elapsed.TotalSeconds;
             _stopwatch.Restart();
 
-            if (dt > 0.05) dt = 0.016; // guard against large spikes
+            if (dt > 0.05) dt = 0.016; 
 
-            // Decay factor: 19.0 gives a perfectly fluid, snappy and buttery smooth glide without sluggish lag
             double factor = 1.0 - Math.Exp(-19.0 * dt);
             double newOffset = current + (distance * factor);
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -20,7 +20,6 @@ namespace Allens.Services
                 return new InstallationResult { IsSuccess = false, ErrorMessage = "Файл установщика не найден." };
             }
 
-            // Ensure installerPath has an appropriate file extension (.exe, .msi, .zip)
             var currentExt = Path.GetExtension(installerPath);
             if (string.IsNullOrWhiteSpace(currentExt))
             {
@@ -49,7 +48,6 @@ namespace Allens.Services
                 }
             }
 
-            // Close any currently running instances of the app to prevent locked files during install/update
             try
             {
                 await ProcessHelper.CloseRunningAppProcessesAsync(app);
@@ -63,18 +61,16 @@ namespace Allens.Services
                 WindowStyle = ProcessWindowStyle.Normal
             };
 
-            // Set Admin rights if required
             if (app.RequiresAdmin)
             {
                 startInfo.Verb = "runas";
             }
 
-            // Configure based on installer type
             if (string.Equals(app.InstallerType, "zip", StringComparison.OrdinalIgnoreCase) || installerPath.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
             {
                 try
                 {
-                    // Check if the zip contains an installer executable with silent arguments (e.g. MSI Afterburner)
+
                     if (!string.IsNullOrWhiteSpace(app.SilentArguments))
                     {
                         var tempExtractDir = Path.Combine(Path.GetTempPath(), "Allens", "Extract", app.Id + "_" + Guid.NewGuid().ToString("N"));
@@ -87,7 +83,6 @@ namespace Allens.Services
                             return new InstallationResult { IsSuccess = false, ErrorMessage = "В архиве не найден исполняемый файл установщика." };
                         }
 
-                        // Pick the best setup executable
                         var setupExe = exes[0];
                         foreach (var exe in exes)
                         {
@@ -117,7 +112,7 @@ namespace Allens.Services
                         }
                         catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 740)
                         {
-                            // 740 = ERROR_ELEVATION_REQUIRED: Retry with Administrator privileges
+
                             procInfo.Verb = "runas";
                             proc = Process.Start(procInfo);
                         }
@@ -156,13 +151,13 @@ namespace Allens.Services
                     }
                     else
                     {
-                        // Standard portable extraction
+
                         var targetDir = Environment.ExpandEnvironmentVariables(
                             string.IsNullOrWhiteSpace(app.DetectionValue) 
                                 ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", app.Id)
                                 : (Path.GetDirectoryName(app.DetectionValue) ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", app.Id))
                         );
-                        
+
                         if (!Directory.Exists(targetDir))
                         {
                             Directory.CreateDirectory(targetDir);
@@ -234,13 +229,13 @@ namespace Allens.Services
                 }
                 else
                 {
-                    msiArgs += " /qn /norestart"; // Default fallback for MSI
+                    msiArgs += " /qn /norestart"; 
                 }
                 startInfo.Arguments = msiArgs;
             }
             else
             {
-                // Default to EXE
+
                 startInfo.FileName = installerPath;
                 if (!string.IsNullOrWhiteSpace(app.SilentArguments))
                 {
@@ -257,11 +252,11 @@ namespace Allens.Services
                 }
                 catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 740)
                 {
-                    // 740 = ERROR_ELEVATION_REQUIRED: Retry with Administrator privileges
+
                     startInfo.Verb = "runas";
                     process = Process.Start(startInfo);
                 }
-                
+
                 if (process == null)
                 {
                     return new InstallationResult { IsSuccess = false, ErrorMessage = "Не удалось запустить процесс установки." };
@@ -273,7 +268,7 @@ namespace Allens.Services
 
                     return new InstallationResult
                     {
-                        IsSuccess = process.ExitCode == 0 || process.ExitCode == 3010, // 3010 is ERROR_SUCCESS_REBOOT_REQUIRED
+                        IsSuccess = process.ExitCode == 0 || process.ExitCode == 3010, 
                         ExitCode = process.ExitCode
                     };
                 }
@@ -288,7 +283,7 @@ namespace Allens.Services
             }
             catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
             {
-                // 1223 is "The operation was canceled by the user" (UAC declined)
+
                 return new InstallationResult { IsSuccess = false, ErrorMessage = "Установка отменена пользователем (UAC отклонен)." };
             }
             catch (System.ComponentModel.Win32Exception ex)
@@ -326,7 +321,6 @@ namespace Allens.Services
 
                 if (allExes.Count == 0) return null;
 
-                // Pick matching executable strictly by app Id or Name
                 var bestMatch = allExes.FirstOrDefault(f => Path.GetFileName(f).StartsWith(app.Id, StringComparison.OrdinalIgnoreCase) &&
                                                             !Path.GetFileName(f).Contains("runner", StringComparison.OrdinalIgnoreCase) &&
                                                             !Path.GetFileName(f).Contains("sandbox", StringComparison.OrdinalIgnoreCase) &&
@@ -388,19 +382,17 @@ namespace Allens.Services
             {
                 if (!Directory.Exists(targetDir)) return;
 
-                // If targetDir already contains .exe files directly in its root, no flattening needed
                 if (Directory.GetFiles(targetDir, "*.exe", SearchOption.TopDirectoryOnly).Length > 0)
                 {
                     return;
                 }
 
                 var subDirs = Directory.GetDirectories(targetDir);
-                // If there is exactly one subdirectory containing the extracted package
+
                 if (subDirs.Length == 1)
                 {
                     var singleSubDir = subDirs[0];
 
-                    // Move all files from singleSubDir to targetDir
                     foreach (var file in Directory.GetFiles(singleSubDir, "*", SearchOption.TopDirectoryOnly))
                     {
                         var destFile = Path.Combine(targetDir, Path.GetFileName(file));
@@ -411,7 +403,6 @@ namespace Allens.Services
                         File.Move(file, destFile);
                     }
 
-                    // Move all subdirectories from singleSubDir to targetDir
                     foreach (var dir in Directory.GetDirectories(singleSubDir, "*", SearchOption.TopDirectoryOnly))
                     {
                         var destSubDir = Path.Combine(targetDir, Path.GetFileName(dir));
@@ -422,7 +413,6 @@ namespace Allens.Services
                         Directory.Move(dir, destSubDir);
                     }
 
-                    // Delete the now empty singleSubDir
                     try
                     {
                         Directory.Delete(singleSubDir, recursive: false);
@@ -446,7 +436,7 @@ namespace Allens.Services
                 }
                 catch
                 {
-                    // Fallback to tar.exe if ZipFile fails (e.g. non-standard headers or tar disguised as zip)
+
                 }
             }
 

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
@@ -12,8 +12,7 @@ namespace Allens.Services
         {
             if (string.IsNullOrWhiteSpace(expectedSha256))
             {
-                // If no hash is provided, we can't verify, but we assume it's OK to proceed
-                // based on the requirement "если SHA-256 указан — вычислить хэш"
+
                 return true;
             }
 
@@ -35,10 +34,9 @@ namespace Allens.Services
 
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
             using var sha256 = SHA256.Create();
-            
-            // ComputeHashAsync is available in modern .NET
+
             var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
-            
+
             return Convert.ToHexString(hashBytes);
         }
     }

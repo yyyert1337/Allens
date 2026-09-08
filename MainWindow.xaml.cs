@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
@@ -28,13 +28,13 @@ namespace Allens
                     var hwnd = new WindowInteropHelper(this).Handle;
                     int useDarkMode = 1;
                     DwmSetWindowAttribute(hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDarkMode, sizeof(int));
-                    
+
                     int cornerPref = DWMWCP_ROUND;
                     DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref cornerPref, sizeof(int));
                 }
                 catch
                 {
-                    // Fallback for older OS versions
+
                 }
             };
         }
@@ -49,7 +49,7 @@ namespace Allens
                 }
                 catch (InvalidOperationException)
                 {
-                    // DragMove can throw if mouse button was released rapidly or state changed
+
                 }
             }
         }

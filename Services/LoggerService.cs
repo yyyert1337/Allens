@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 
 namespace Allens.Services
@@ -12,7 +12,7 @@ namespace Allens.Services
         {
             var tempPath = Path.GetTempPath();
             var directory = Path.Combine(tempPath, "Allens");
-            
+
             if (!Directory.Exists(directory))
             {
                 Directory.CreateDirectory(directory);
@@ -32,7 +32,7 @@ namespace Allens.Services
             WriteLog("ERROR", fullMessage);
         }
 
-        private const long MaxLogFileSizeBytes = 5 * 1024 * 1024; // 5 MB
+        private const long MaxLogFileSizeBytes = 5 * 1024 * 1024; 
 
         private void WriteLog(string level, string message)
         {
@@ -56,7 +56,7 @@ namespace Allens.Services
                 }
                 catch
                 {
-                    // Fail silently for logger
+
                 }
             }
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -26,10 +26,8 @@ namespace Allens.Services
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-            // Trigger background sync with remote GitHub raw catalog to keep cache fresh
             _ = TryUpdateRemoteCatalogAsync();
 
-            // 1. Check local cache from previous remote updates
             if (File.Exists(_cachePath))
             {
                 try
@@ -44,7 +42,6 @@ namespace Allens.Services
                 catch { }
             }
 
-            // 2. Prioritize Embedded Resource compiled directly inside the executable
             try
             {
                 var assembly = typeof(CatalogService).Assembly;
@@ -60,7 +57,6 @@ namespace Allens.Services
             }
             catch { }
 
-            // 3. Fallback to WPF Pack URI resource
             try
             {
                 var uri = new Uri("pack://application:,,,/Data/apps.json");
@@ -77,7 +73,6 @@ namespace Allens.Services
             }
             catch { }
 
-            // 4. Fallback to external file on disk
             if (File.Exists(_catalogPath))
             {
                 try
@@ -121,7 +116,7 @@ namespace Allens.Services
             }
             catch
             {
-                // Silently ignore network or parsing failures during background sync
+
             }
         }
     }

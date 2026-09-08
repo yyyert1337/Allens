@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -31,7 +31,7 @@ namespace Allens.Helpers
             }
             catch
             {
-                // If disk info cannot be queried (e.g. network share or virtual mount), do not block
+
                 return true;
             }
         }
@@ -45,20 +45,17 @@ namespace Allens.Helpers
                 baseBytes = ParseSizeToBytes(app.SizeDisplay);
             }
 
-            // If size couldn't be parsed, use a safe default of 300 MB
             if (baseBytes <= 0)
             {
                 baseBytes = 300L * 1024 * 1024;
             }
 
-            // For ZIP or portable apps, we need space for both download and extraction (x3)
             if (app.InstallerType.Equals("zip", StringComparison.OrdinalIgnoreCase) ||
                 app.InstallerType.Equals("portable", StringComparison.OrdinalIgnoreCase))
             {
                 return baseBytes * 3;
             }
 
-            // For installers, we need space for installer download + installed files + buffer (x2.5)
             return (long)(baseBytes * 2.5);
         }
 
@@ -82,7 +79,7 @@ namespace Allens.Helpers
                     "MB" => (long)(value * 1024 * 1024),
                     "KB" => (long)(value * 1024),
                     "B" => (long)value,
-                    _ => (long)(value * 1024 * 1024) // default assume MB
+                    _ => (long)(value * 1024 * 1024) 
                 };
             }
             catch

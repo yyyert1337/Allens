@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -17,10 +17,9 @@ namespace Allens.Services
         {
             try
             {
-                // Ensure any running instances of the application are closed before attempting uninstallation
+
                 await ProcessHelper.CloseRunningAppProcessesAsync(app);
 
-                // 1. If application is marked as portable/zip or directory-based uninstallation:
                 if (app.InstallerType.Equals("zip", StringComparison.OrdinalIgnoreCase) ||
                     app.InstallerType.Equals("portable", StringComparison.OrdinalIgnoreCase) ||
                     app.UninstallMethod.Equals("directory", StringComparison.OrdinalIgnoreCase))
@@ -31,14 +30,12 @@ namespace Allens.Services
                 string? uninstallerCmd = null;
                 string extraArguments = app.UninstallArguments ?? string.Empty;
 
-                // 2. Check if uninstallMethod is registry or if uninstallValue is a registry key
                 if (app.UninstallMethod.Equals("registry", StringComparison.OrdinalIgnoreCase) ||
                     (!string.IsNullOrWhiteSpace(app.UninstallValue) && app.UninstallValue.StartsWith("HKEY_", StringComparison.OrdinalIgnoreCase)))
                 {
                     uninstallerCmd = FindUninstallCommandFromRegistry(app);
                 }
 
-                // 3. Check if uninstallMethod is path
                 if (string.IsNullOrWhiteSpace(uninstallerCmd) && app.UninstallMethod.Equals("path", StringComparison.OrdinalIgnoreCase))
                 {
                     var expandedPath = Environment.ExpandEnvironmentVariables(app.UninstallValue);
@@ -54,24 +51,22 @@ namespace Allens.Services
                         }
                         else
                         {
-                            // Path is the application executable itself, not an uninstaller -> treat as portable removal
+
                             return await UninstallDirectoryOrPortableAsync(app);
                         }
                     }
                     else
                     {
-                        // Path doesn't exist on disk, check registry for uninstaller
+
                         uninstallerCmd = FindUninstallCommandFromRegistry(app);
                     }
                 }
 
-                // 4. Global registry search fallback if still empty
                 if (string.IsNullOrWhiteSpace(uninstallerCmd))
                 {
                     uninstallerCmd = FindUninstallCommandFromRegistry(app);
                 }
 
-                // 5. Look for standard uninstaller in app.InstalledPath
                 if (string.IsNullOrWhiteSpace(uninstallerCmd) && !string.IsNullOrWhiteSpace(app.InstalledPath) && Directory.Exists(app.InstalledPath))
                 {
                     var candidates = new[] { "unins000.exe", "uninstall.exe", "uninst.exe", "setup.exe", "Uninstall.exe" };
@@ -86,10 +81,9 @@ namespace Allens.Services
                     }
                 }
 
-                // 6. If no uninstaller command found at all:
                 if (string.IsNullOrWhiteSpace(uninstallerCmd))
                 {
-                    // Check if installed files exist on disk
+
                     bool hasFiles = (!string.IsNullOrWhiteSpace(app.InstalledPath) && Directory.Exists(app.InstalledPath)) ||
                                     (!string.IsNullOrWhiteSpace(app.DetectionValue) && !app.DetectionValue.StartsWith("HKEY_", StringComparison.OrdinalIgnoreCase) &&
                                      (File.Exists(Environment.ExpandEnvironmentVariables(app.DetectionValue)) || Directory.Exists(Environment.ExpandEnvironmentVariables(app.DetectionValue))));
@@ -99,13 +93,11 @@ namespace Allens.Services
                         return await UninstallDirectoryOrPortableAsync(app);
                     }
 
-                    // Application files and uninstaller are already absent -> it is already uninstalled!
                     CleanupLeftovers(app);
                     app.IsInstalled = false;
                     return new InstallationResult { IsSuccess = true, ExitCode = 0 };
                 }
 
-                // 7. Execute the uninstaller
                 return await ExecuteUninstallerAsync(app, uninstallerCmd, extraArguments, cancellationToken);
             }
             catch (TimeoutException ex)
@@ -136,7 +128,6 @@ namespace Allens.Services
         {
             ParseCommand(command, out string executable, out string arguments);
 
-            // Handle MsiExec
             if (executable.Equals("msiexec", StringComparison.OrdinalIgnoreCase) ||
                 executable.Equals("msiexec.exe", StringComparison.OrdinalIgnoreCase) ||
                 executable.EndsWith("msiexec.exe", StringComparison.OrdinalIgnoreCase))
@@ -151,7 +142,7 @@ namespace Allens.Services
             {
                 if (!File.Exists(executable))
                 {
-                    // The uninstaller executable is missing. If app files are already gone, consider uninstalled!
+
                     if (IsAppAlreadyGone(app))
                     {
                         CleanupLeftovers(app);
@@ -212,13 +203,10 @@ namespace Allens.Services
 
             await ProcessHelper.WaitForExitWithTimeoutAsync(process, TimeSpan.FromMinutes(15), cancellationToken);
 
-            // Allow brief delay for uninstaller child processes/threads (e.g. NSIS/Inno helper spawns) to finish and release file locks
             await Task.Delay(1500, cancellationToken);
 
-            // Execute deep leftover cleanup (Geek Uninstaller style)
             CleanupLeftovers(app);
 
-            // Exit code 0 (success), 3010 (reboot required), 1605 (product already uninstalled)
             bool isSuccess = process.ExitCode == 0 || process.ExitCode == 3010 || process.ExitCode == 1605 || IsAppAlreadyGone(app);
 
             if (isSuccess)
@@ -238,20 +226,17 @@ namespace Allens.Services
         {
             try
             {
-                // 1. Force close and terminate any running processes associated with the application
+
                 await ProcessHelper.CloseRunningAppProcessesAsync(app);
                 KillAppProcesses(app);
 
-                // 2. Deep clean files, directories, shortcuts, appdata, registry, autostart, and uninstall keys
                 CleanupLeftovers(app);
 
-                // 3. Remove from user PATH if installed path was registered
                 if (!string.IsNullOrWhiteSpace(app.InstalledPath))
                 {
                     InstallationService.RemoveDirectoryFromUserPath(app.InstalledPath);
                 }
 
-                // 4. Reset installed state and metadata
                 app.IsInstalled = false;
                 app.InstalledVersion = string.Empty;
                 app.InstalledPath = string.Empty;
@@ -337,7 +322,6 @@ namespace Allens.Services
                 @"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
             };
 
-            // 1. Explicit path in UninstallValue
             if (!string.IsNullOrWhiteSpace(app.UninstallValue) && app.UninstallValue.StartsWith("HKEY_", StringComparison.OrdinalIgnoreCase))
             {
                 var parts = app.UninstallValue.Split(new[] { '\\' }, 2);
@@ -356,7 +340,6 @@ namespace Allens.Services
                 }
             }
 
-            // 2. Iterate roots and uninstall key paths
             foreach (var root in roots)
             {
                 foreach (var uKeyPath in uninstallKeys)
@@ -364,7 +347,6 @@ namespace Allens.Services
                     using var uKey = root.OpenSubKey(uKeyPath);
                     if (uKey == null) continue;
 
-                    // Direct name checks
                     var directNames = new[] { app.Id, app.Name, $"{app.Name}_is1", $"{app.Id}_is1" };
                     foreach (var dn in directNames)
                     {
@@ -376,7 +358,6 @@ namespace Allens.Services
                         }
                     }
 
-                    // Enumerate all subkeys to find by subkey name or DisplayName
                     foreach (var subName in uKey.GetSubKeyNames())
                     {
                         bool subNameMatch = subName.IndexOf(app.Name, StringComparison.OrdinalIgnoreCase) >= 0 ||
@@ -420,7 +401,6 @@ namespace Allens.Services
                 if (!string.IsNullOrWhiteSpace(exeName)) processNames.Add(exeName);
             }
 
-            // Also inspect installed folder for any executables (helpers, background daemons, updaters)
             if (!string.IsNullOrWhiteSpace(app.InstalledPath) && Directory.Exists(app.InstalledPath) && !Allens.Helpers.PathSafetyHelper.IsProtectedSystemPath(app.InstalledPath))
             {
                 try
@@ -437,7 +417,7 @@ namespace Allens.Services
 
             foreach (var pName in processNames)
             {
-                // Never kill critical system or current application processes
+
                 if (string.Equals(pName, "explorer", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(pName, "Allens", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(pName, "devenv", StringComparison.OrdinalIgnoreCase) ||
@@ -479,28 +459,21 @@ namespace Allens.Services
 
         private void CleanupLeftovers(AppItem app)
         {
-            // 1. Terminate any remaining app processes
+
             KillAppProcesses(app);
 
-            // 2. Deep clean installed directory & detection targets
             CleanupInstallDirectory(app);
 
-            // 3. Deep clean shortcuts from Desktop, Start Menu, and Startup
             CleanupShortcuts(app);
 
-            // 4. Deep clean user and application data directories (%APPDATA%, %LOCALAPPDATA%, %PROGRAMDATA%, etc.)
             CleanupUserDataDirectories(app);
 
-            // 5. Clean manifest explicit CleanupPaths
             CleanupExplicitPaths(app);
 
-            // 6. Deep clean registry software keys
             CleanupRegistrySoftwareKeys(app);
 
-            // 7. Clean registry autostart (Run / RunOnce) entries
             CleanupRegistryAutostart(app);
 
-            // 8. Clean leftover registry Uninstall entries
             CleanupRegistryUninstallKeys(app);
         }
 
@@ -620,14 +593,12 @@ namespace Allens.Services
                 {
                     if (string.IsNullOrWhiteSpace(name)) continue;
 
-                    // Direct folder match
                     var targetDir = Path.Combine(baseDir, name);
                     if (Directory.Exists(targetDir) && !Allens.Helpers.PathSafetyHelper.IsProtectedSystemPath(targetDir))
                     {
                         Allens.Helpers.PathSafetyHelper.SafeDeleteDirectory(targetDir, cleanParentIfEmpty: false);
                     }
 
-                    // Dot prefix (e.g. .appname) in UserProfile
                     if (baseDir.Equals(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), StringComparison.OrdinalIgnoreCase))
                     {
                         var dotDir = Path.Combine(baseDir, "." + name);
@@ -637,7 +608,6 @@ namespace Allens.Services
                         }
                     }
 
-                    // Publisher vendor subfolder (e.g. AppData\Local\Vendor\AppName)
                     if (!string.IsNullOrWhiteSpace(app.Publisher) && !IsGenericVendorName(app.Publisher))
                     {
                         var pubDir = Path.Combine(baseDir, app.Publisher);
@@ -694,7 +664,6 @@ namespace Allens.Services
                         {
                             DeleteSubKeyTreeSafe(baseKey, name);
 
-                            // Check Publisher\Name
                             if (!string.IsNullOrWhiteSpace(app.Publisher) && !IsGenericVendorName(app.Publisher))
                             {
                                 using var pubKey = baseKey.OpenSubKey(app.Publisher, writable: true);
@@ -923,7 +892,7 @@ namespace Allens.Services
             }
             else
             {
-                // Try to find matching file if spaces exist without quotes
+
                 int spaceIndex = command.IndexOf(' ');
                 while (spaceIndex > 0)
                 {
